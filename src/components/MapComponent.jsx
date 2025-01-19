@@ -136,7 +136,7 @@ const MapComponent = () => {
   return (
     <div className="w-full max-w-4xl mx-auto p-4 bg-white shadow-lg rounded-lg">
       <h1 className="text-2xl font-bold mb-4">
-        Google Map Integration By Abbas Ali
+        Google Map Integration Using Mern
       </h1>
       {/* Component to input origin and destination */}
       <LocationInput setOrigin={setOrigin} setDestination={setDestination} />
