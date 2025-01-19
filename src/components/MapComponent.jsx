@@ -99,7 +99,7 @@ const MapComponent = () => {
           userLocation.lat,
           userLocation.lng
         ),
-        radius: 500, // Radius in meters
+        radius: 50, // Radius in meters
         type: "restaurant", // Type of place to search
       };
 
@@ -111,7 +111,7 @@ const MapComponent = () => {
             userLocation.lat,
             userLocation.lng
           ),
-          radius: 500, // Radius in meters
+          radius: 50, // Radius in meters
           type, // Type of place to search
         };
         service.nearbySearch(request, (results, status) => {
@@ -135,13 +135,15 @@ const MapComponent = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto p-4 bg-white shadow-lg rounded-lg">
-      <h1 className="text-2xl font-bold mb-4">Google Map Integration</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        Google Map Integration By Abbas Ali
+      </h1>
       {/* Component to input origin and destination */}
       <LocationInput setOrigin={setOrigin} setDestination={setDestination} />
       <div className="mt-4">
         <GoogleMap
           center={userLocation || { lat: 31.5497, lng: 74.3436 }} // Default to Lahore if userLocation is null
-          zoom={7}
+          zoom={10}
           mapContainerStyle={{ height: "400px", width: "100%" }}
         >
           {/* Markers for user location, origin, and destination */}
