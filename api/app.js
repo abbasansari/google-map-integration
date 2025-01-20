@@ -6,6 +6,7 @@ import colors from "colors";
 import morgan from "morgan";
 import { connectDB } from "./db/dbConn.js";
 import locationRouter from "./routers/locationRouter.js";
+import userRouter from "./routers/userRouter.js";
 
 const app = express();
 config();
@@ -24,6 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api/v1/location", locationRouter);
+app.use("/api/v1/auth", userRouter);
 
 connectDB();
 
