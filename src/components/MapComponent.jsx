@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   GoogleMap,
   useLoadScript,
@@ -8,16 +8,14 @@ import {
 import LocationInput from "./LocationInput";
 import VoiceNotification from "./VoiceNotification";
 
-const libraries = ["places"]; // Libraries constant to avoid performance warning
+const libraries = ["places"];
 
 const MapComponent = () => {
-  // Load the Google Maps script
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: process.env.REACT_APP_GOOGLE_MAPS_API_KEY,
     libraries,
   });
 
-  // State variables to manage directions, origin, destination, user location, distance, duration, and nearby places
   const [directions, setDirections] = useState(null);
   const [origin, setOrigin] = useState(null);
   const [destination, setDestination] = useState(null);
@@ -26,20 +24,18 @@ const MapComponent = () => {
   const [duration, setDuration] = useState("");
   const [nearbyPlaces, setNearbyPlaces] = useState([]);
 
-  // Voice notification function
-  const speak = (message) => {
+  const speak = useCallback((message) => {
     const synth = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(message);
     synth.speak(utterance);
-  };
+  }, []);
 
-  // Effect to get user's current location
   useEffect(() => {
     const handleLocationChange = (position) => {
       const { latitude, longitude } = position.coords;
       const location = { lat: latitude, lng: longitude };
       setUserLocation(location);
-      setOrigin(location); // Set origin to user's current location by default
+      setOrigin(location);
     };
 
     const handleError = (error) => {
@@ -47,7 +43,7 @@ const MapComponent = () => {
       alert(
         "Unable to fetch your current location. Using default location (Lahore)."
       );
-      setUserLocation({ lat: 31.5497, lng: 74.3436 }); // Fallback location
+      setUserLocation({ lat: 31.5497, lng: 74.3436 });
     };
 
     if (navigator.geolocation) {
@@ -57,11 +53,10 @@ const MapComponent = () => {
       );
     } else {
       console.error("Geolocation is not supported by this browser.");
-      setUserLocation({ lat: 31.5497, lng: 74.3436 }); // Fallback location
+      setUserLocation({ lat: 31.5497, lng: 74.3436 });
     }
   }, []);
 
-  // Effect to fetch directions when origin or destination changes
   useEffect(() => {
     if (window.google && origin && destination) {
       const directionsService = new window.google.maps.DirectionsService();
@@ -88,21 +83,11 @@ const MapComponent = () => {
     }
   }, [origin, destination]);
 
-  // Effect to fetch and announce nearby places when origin and destination are both set
   useEffect(() => {
     if (window.google && userLocation && origin && destination) {
       const service = new window.google.maps.places.PlacesService(
         document.createElement("div")
       );
-      const request = {
-        location: new window.google.maps.LatLng(
-          userLocation.lat,
-          userLocation.lng
-        ),
-        radius: 50, // Radius in meters
-        type: "restaurant", // Type of place to search
-      };
-
       const placeTypes = ["restaurant", "gas_station", "store"];
       let allResults = [];
       placeTypes.forEach((type) => {
@@ -111,15 +96,18 @@ const MapComponent = () => {
             userLocation.lat,
             userLocation.lng
           ),
-          radius: 50, // Radius in meters
-          type, // Type of place to search
+          radius: 50,
+          type,
         };
         service.nearbySearch(request, (results, status) => {
           if (status === window.google.maps.places.PlacesServiceStatus.OK) {
             allResults = [...allResults, ...results];
-            setNearbyPlaces(allResults);
-            results.forEach((place) => {
-              speak(`You are near ${place.name}`);
+            setNearbyPlaces((prevPlaces) => {
+              const newPlaces = [...prevPlaces, ...results];
+              newPlaces.forEach((place) => {
+                speak(`You are near ${place.name}`);
+              });
+              return newPlaces;
             });
           } else {
             console.error("Error fetching nearby places:", status);
@@ -127,9 +115,22 @@ const MapComponent = () => {
         });
       });
     }
-  }, [userLocation, origin, destination]);
+  }, [userLocation, origin, destination, speak]);
 
-  // Handle loading and error states
+  const handleMapClick = useCallback((event) => {
+    const newLocation = {
+      lat: event.latLng.lat(),
+      lng: event.latLng.lng(),
+    };
+    setUserLocation(newLocation);
+    setOrigin(newLocation);
+  }, []);
+
+  const mapCenter = useMemo(
+    () => userLocation || { lat: 31.5497, lng: 74.3436 },
+    [userLocation]
+  );
+
   if (loadError) return <p>Error loading maps: {loadError.message}</p>;
   if (!isLoaded) return <p>Loading Maps...</p>;
 
@@ -138,30 +139,26 @@ const MapComponent = () => {
       <h1 className="text-2xl font-bold mb-4">
         Google Map Integration Using Mern
       </h1>
-      {/* Component to input origin and destination */}
       <LocationInput setOrigin={setOrigin} setDestination={setDestination} />
       <div className="mt-4">
         <GoogleMap
-          center={userLocation || { lat: 31.5497, lng: 74.3436 }} // Default to Lahore if userLocation is null
+          center={mapCenter}
           zoom={10}
           mapContainerStyle={{ height: "400px", width: "100%" }}
+          onClick={handleMapClick}
         >
-          {/* Markers for user location, origin, and destination */}
           {userLocation && <Marker position={userLocation} />}
           {origin && <Marker position={origin} />}
           {destination && <Marker position={destination} />}
-          {/* Directions renderer */}
           {directions && <DirectionsRenderer directions={directions} />}
         </GoogleMap>
       </div>
-      {/* Display distance and duration */}
       {distance && duration && (
         <div className="mt-4">
           <p>Total Distance: {distance}</p>
           <p>Estimated Time: {duration}</p>
         </div>
       )}
-      {/* Nearby Places */}
       <div className="mt-4">
         <h2 className="font-bold text-lg">Nearby Places:</h2>
         <ul>
@@ -170,7 +167,6 @@ const MapComponent = () => {
           ))}
         </ul>
       </div>
-      {/* Voice notification component */}
       <VoiceNotification
         userLocation={userLocation}
         destination={destination}
@@ -179,4 +175,4 @@ const MapComponent = () => {
   );
 };
 
-export default MapComponent;
+export default React.memo(MapComponent);
